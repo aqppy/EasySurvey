@@ -2,6 +2,13 @@
  * Survey system frontend and admin interactions
  */
 
+function t(key, defaultValue = '') {
+    if (window.SurveyLang && typeof window.SurveyLang[key] !== 'undefined') {
+        return window.SurveyLang[key];
+    }
+    return defaultValue || key;
+}
+
 function applyAdminBranding(appName, appLogoUrl = null, titleTemplate = null, copyrightText = null) {
     if (!appName) {
         return;
@@ -58,7 +65,7 @@ function updateQuestionNumbers() {
 
         const header = editor.querySelector('.question-editor-header h4');
         if (header) {
-            header.textContent = `题目 ${index + 1}`;
+            header.textContent = `${t('resp_detail_q', '题目')} ${index + 1}`;
         }
 
         editor.querySelectorAll('[name^="questions["]').forEach((field) => {
@@ -129,21 +136,21 @@ function setupImageUploadField(config) {
         const removeMarked = removeInput.value === '1';
 
         if (selectedFile) {
-            showUploadStatus(statusElement, `已选择文件：${selectedFile.name}，保存后生效`, 'success');
+            showUploadStatus(statusElement, t('js_upload_selected', '已选择文件：{name}，保存后生效').replace('{name}', selectedFile.name), 'success');
             return;
         }
 
         if (removeMarked) {
-            showUploadStatus(statusElement, `${config.label}已标记移除，保存后生效`, 'warning');
+            showUploadStatus(statusElement, t('js_upload_removed', '{label}已标记移除，保存后生效').replace('{label}', config.label), 'warning');
             return;
         }
 
         if (currentUrl) {
-            showUploadStatus(statusElement, `当前已使用${config.label}`, 'default');
+            showUploadStatus(statusElement, t('js_upload_current', '当前已使用{label}').replace('{label}', config.label), 'default');
             return;
         }
 
-        showUploadStatus(statusElement, `当前未设置${config.label}`, 'empty');
+        showUploadStatus(statusElement, t('js_upload_empty', '当前未设置{label}').replace('{label}', config.label), 'empty');
     }
 
     fileInput.addEventListener('change', function () {
@@ -274,9 +281,9 @@ function submitSurvey(surveyId) {
     }
 
     const submitBtn = document.getElementById('submitBtn');
-    const defaultBtnText = submitBtn ? (submitBtn.dataset.defaultText || '提交') : '提交';
+    const defaultBtnText = submitBtn ? (submitBtn.dataset.defaultText || t('js_submit', '提交')) : t('js_submit', '提交');
     submitBtn.disabled = true;
-    submitBtn.textContent = '提交中...';
+    submitBtn.textContent = t('js_submitting', '提交中...');
 
     const formData = {
         survey_id: surveyId,
@@ -309,13 +316,13 @@ function submitSurvey(surveyId) {
             const contentType = response.headers.get('content-type');
             if (!contentType || !contentType.includes('application/json')) {
                 return response.text().then((text) => {
-                    throw new Error(`服务端返回了非 JSON 响应 (HTTP ${response.status}): ${text.substring(0, 200)}`);
+                    throw new Error(t('js_server_non_json', '服务端返回了非 JSON 响应 (HTTP {status}): {text}').replace('{status}', response.status).replace('{text}', text.substring(0, 200)));
                 });
             }
 
             return response.text().then((text) => {
                 if (!text) {
-                    throw new Error(`服务端返回了空响应 (HTTP ${response.status})`);
+                    throw new Error(t('js_server_empty', '服务端返回了空响应 (HTTP {status})').replace('{status}', response.status));
                 }
                 return JSON.parse(text);
             });
@@ -327,13 +334,13 @@ function submitSurvey(surveyId) {
                 return;
             }
 
-            alert(data.message || '提交失败，请重试');
+            alert(data.message || t('js_submit_failed', '提交失败，请重试'));
             submitBtn.disabled = false;
             submitBtn.textContent = defaultBtnText;
         })
         .catch((error) => {
             console.error('提交错误:', error);
-            alert(`提交出错: ${error.message}`);
+            alert(t('js_submit_error', '提交出错: {error}').replace('{error}', error.message));
             submitBtn.disabled = false;
             submitBtn.textContent = defaultBtnText;
         });
@@ -360,7 +367,7 @@ function toggleSurveyStatus(surveyId, currentStatus) {
 }
 
 function deleteSurvey(surveyId) {
-    if (!confirm('确定要删除这份问卷吗？删除后题目和已收集的数据都会一起移除。')) {
+    if (!confirm(t('js_del_warning', '确定要删除这份问卷吗？删除后题目和已收集的数据都会一起移除。'))) {
         return;
     }
 
@@ -390,43 +397,43 @@ function addQuestion() {
         <div class="question-editor" data-index="${questionCount}">
             <input type="hidden" name="questions[${questionCount}][id]" value="0">
             <div class="question-editor-header">
-                <h4>题目 ${newOrder}</h4>
+                <h4>${t('resp_detail_q', '题目')} ${newOrder}</h4>
                 <div class="question-actions">
-                    <button type="button" class="btn btn-sm" onclick="moveQuestion(this, -1)" title="上移">↑</button>
-                    <button type="button" class="btn btn-sm" onclick="moveQuestion(this, 1)" title="下移">↓</button>
-                    <button type="button" class="btn btn-sm btn-danger" onclick="removeQuestion(this)" title="删除">×</button>
+                    <button type="button" class="btn btn-sm" onclick="moveQuestion(this, -1)" title="${t('js_move_up', '上移')}">↑</button>
+                    <button type="button" class="btn btn-sm" onclick="moveQuestion(this, 1)" title="${t('js_move_down', '下移')}">↓</button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="removeQuestion(this)" title="${t('delete', '删除')}">×</button>
                 </div>
             </div>
             <div class="form-group">
-                <label>题目内容</label>
-                <input type="text" name="questions[${questionCount}][title]" class="form-control" placeholder="请输入题目内容" required>
+                <label>${t('survey_q_title', '题目内容')}</label>
+                <input type="text" name="questions[${questionCount}][title]" class="form-control" placeholder="${t('survey_q_title_placeholder', '请输入题目内容')}" required>
             </div>
             <div class="form-group">
-                <label>题目类型</label>
+                <label>${t('survey_q_type', '题目类型')}</label>
                 <select name="questions[${questionCount}][type]" class="form-control" onchange="toggleOptionsInput(this)">
-                    <option value="radio">单选题</option>
-                    <option value="checkbox">多选题</option>
-                    <option value="text">文本题</option>
+                    <option value="radio">${t('survey_type_radio', '单选题')}</option>
+                    <option value="checkbox">${t('survey_type_checkbox', '多选题')}</option>
+                    <option value="text">${t('survey_type_text', '文本题')}</option>
                 </select>
             </div>
             <div class="form-group options-group">
-                <label>选项</label>
+                <label>${t('survey_options_label', '选项')}</label>
                 <div class="option-inputs">
                     <div class="option-input-row">
-                        <input type="text" name="questions[${questionCount}][options][]" class="form-control" placeholder="选项 1">
+                        <input type="text" name="questions[${questionCount}][options][]" class="form-control" placeholder="${t('survey_option_placeholder', '选项 %d').replace('%d', '1')}">
                         <button type="button" class="remove-option" onclick="removeOption(this)">×</button>
                     </div>
                     <div class="option-input-row">
-                        <input type="text" name="questions[${questionCount}][options][]" class="form-control" placeholder="选项 2">
+                        <input type="text" name="questions[${questionCount}][options][]" class="form-control" placeholder="${t('survey_option_placeholder', '选项 %d').replace('%d', '2')}">
                         <button type="button" class="remove-option" onclick="removeOption(this)">×</button>
                     </div>
                 </div>
-                <button type="button" class="btn btn-sm" onclick="addOption(this)" style="margin-top: 8px;">+ 添加选项</button>
+                <button type="button" class="btn btn-sm" onclick="addOption(this)" style="margin-top: 8px;">${t('survey_add_option', '+ 添加选项')}</button>
             </div>
             <div class="form-group">
                 <label class="checkbox-row">
                     <input type="checkbox" name="questions[${questionCount}][required]" value="1" checked>
-                    必填
+                    ${t('required_field', '必填')}
                 </label>
             </div>
             <input type="hidden" name="questions[${questionCount}][sort_order]" value="${newOrder}">
@@ -446,7 +453,7 @@ function removeQuestion(btn) {
         const form = document.getElementById('surveyForm');
         const hasResponses = form && form.dataset.hasResponses === 'true';
         if (hasResponses) {
-            const confirmMsg = '该问卷已有收集到的回答。删除此题目将永久删除已收集的所有历史答案，确定要删除吗？';
+            const confirmMsg = t('js_confirm_delete_q', '该问卷已有收集到的回答。删除此题目将永久删除已收集的所有历史答案，确定要删除吗？');
             if (!confirm(confirmMsg)) {
                 return;
             }
@@ -483,9 +490,10 @@ function addOption(btn) {
         .querySelector('input[name$="[title]"]')
         .name.match(/questions\[(\d+)\]/)[1];
 
+    const placeholderText = t('survey_option_placeholder', '选项 %d').replace('%d', optionCount + 1);
     const html = `
         <div class="option-input-row">
-            <input type="text" name="questions[${questionIndex}][options][]" class="form-control" placeholder="选项 ${optionCount + 1}">
+            <input type="text" name="questions[${questionIndex}][options][]" class="form-control" placeholder="${placeholderText}">
             <button type="button" class="remove-option" onclick="removeOption(this)">×</button>
         </div>
     `;
@@ -498,7 +506,7 @@ function removeOption(btn) {
     const container = row.parentElement;
 
     if (container.querySelectorAll('.option-input-row').length <= 2) {
-        alert('至少保留两个选项。');
+        alert(t('js_at_least_two_options', '至少保留两个选项。'));
         return;
     }
 
@@ -529,56 +537,61 @@ function populateParsedQuestions(questions) {
     questions.forEach((question, index) => {
         const questionCount = index;
         const newOrder = index + 1;
-        const optionsHtml = (question.options || []).map((option, optIdx) => `
-            <div class="option-input-row">
-                <input type="text" name="questions[${questionCount}][options][]" class="form-control" value="${escapeHtml(option)}" placeholder="选项 ${optIdx + 1}">
-                <button type="button" class="remove-option" onclick="removeOption(this)">×</button>
-            </div>
-        `).join('');
+        const optionsHtml = (question.options || []).map((option, optIdx) => {
+            const optPlaceholder = t('survey_option_placeholder', '选项 %d').replace('%d', optIdx + 1);
+            return `
+                <div class="option-input-row">
+                    <input type="text" name="questions[${questionCount}][options][]" class="form-control" value="${escapeHtml(option)}" placeholder="${optPlaceholder}">
+                    <button type="button" class="remove-option" onclick="removeOption(this)">×</button>
+                </div>
+            `;
+        }).join('');
         
+        const optPlaceholder1 = t('survey_option_placeholder', '选项 %d').replace('%d', '1');
+        const optPlaceholder2 = t('survey_option_placeholder', '选项 %d').replace('%d', '2');
         const html = `
             <div class="question-editor" data-index="${questionCount}">
                 <input type="hidden" name="questions[${questionCount}][id]" value="0">
                 <div class="question-editor-header">
-                    <h4>题目 ${newOrder}</h4>
+                    <h4>${t('resp_detail_q', '题目')} ${newOrder}</h4>
                     <div class="question-actions">
-                        <button type="button" class="btn btn-sm" onclick="moveQuestion(this, -1)" title="上移">↑</button>
-                        <button type="button" class="btn btn-sm" onclick="moveQuestion(this, 1)" title="下移">↓</button>
-                        <button type="button" class="btn btn-sm btn-danger" onclick="removeQuestion(this)" title="删除">×</button>
+                        <button type="button" class="btn btn-sm" onclick="moveQuestion(this, -1)" title="${t('js_move_up', '上移')}">↑</button>
+                        <button type="button" class="btn btn-sm" onclick="moveQuestion(this, 1)" title="${t('js_move_down', '下移')}">↓</button>
+                        <button type="button" class="btn btn-sm btn-danger" onclick="removeQuestion(this)" title="${t('delete', '删除')}">×</button>
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>题目内容</label>
-                    <input type="text" name="questions[${questionCount}][title]" class="form-control" value="${escapeHtml(question.title)}" placeholder="请输入题目内容" required>
+                    <label>${t('survey_q_title', '题目内容')}</label>
+                    <input type="text" name="questions[${questionCount}][title]" class="form-control" value="${escapeHtml(question.title)}" placeholder="${t('survey_q_title_placeholder', '请输入题目内容')}" required>
                 </div>
                 <div class="form-group">
-                    <label>题目类型</label>
+                    <label>${t('survey_q_type', '题目类型')}</label>
                     <select name="questions[${questionCount}][type]" class="form-control" onchange="toggleOptionsInput(this)">
-                        <option value="radio" ${question.type === 'radio' ? 'selected' : ''}>单选题</option>
-                        <option value="checkbox" ${question.type === 'checkbox' ? 'selected' : ''}>多选题</option>
-                        <option value="text" ${question.type === 'text' ? 'selected' : ''}>文本题</option>
+                        <option value="radio" ${question.type === 'radio' ? 'selected' : ''}>${t('survey_type_radio', '单选题')}</option>
+                        <option value="checkbox" ${question.type === 'checkbox' ? 'selected' : ''}>${t('survey_type_checkbox', '多选题')}</option>
+                        <option value="text" ${question.type === 'text' ? 'selected' : ''}>${t('survey_type_text', '文本题')}</option>
                     </select>
                 </div>
                 <div class="form-group options-group" style="${question.type === 'text' ? 'display:none;' : ''}">
-                    <label>选项</label>
+                    <label>${t('survey_options_label', '选项')}</label>
                     <div class="option-inputs">
                         ${optionsHtml !== '' ? optionsHtml : `
                             <div class="option-input-row">
-                                <input type="text" name="questions[${questionCount}][options][]" class="form-control" placeholder="选项 1">
+                                <input type="text" name="questions[${questionCount}][options][]" class="form-control" placeholder="${optPlaceholder1}">
                                 <button type="button" class="remove-option" onclick="removeOption(this)">×</button>
                             </div>
                             <div class="option-input-row">
-                                <input type="text" name="questions[${questionCount}][options][]" class="form-control" placeholder="选项 2">
+                                <input type="text" name="questions[${questionCount}][options][]" class="form-control" placeholder="${optPlaceholder2}">
                                 <button type="button" class="remove-option" onclick="removeOption(this)">×</button>
                             </div>
                         `}
                     </div>
-                    <button type="button" class="btn btn-sm" onclick="addOption(this)" style="margin-top: 8px;">+ 添加选项</button>
+                    <button type="button" class="btn btn-sm" onclick="addOption(this)" style="margin-top: 8px;">${t('survey_add_option', '+ 添加选项')}</button>
                 </div>
                 <div class="form-group">
                     <label class="checkbox-row">
                         <input type="checkbox" name="questions[${questionCount}][required]" value="1" ${question.required ? 'checked' : ''}>
-                        必填
+                        ${t('required_field', '必填')}
                     </label>
                 </div>
                 <input type="hidden" name="questions[${questionCount}][sort_order]" value="${newOrder}">
@@ -609,10 +622,10 @@ function handleCSVImport(input) {
     formData.append('csv_file', file);
 
     const importBtn = document.querySelector('button[onclick="triggerCSVImport()"]');
-    const originalText = importBtn ? importBtn.textContent : '导入 CSV 问卷';
+    const originalText = importBtn ? importBtn.textContent : t('survey_import_csv', '导入 CSV 问卷');
     if (importBtn) {
         importBtn.disabled = true;
-        importBtn.textContent = '导入中...';
+        importBtn.textContent = t('js_import_loading', '导入中...');
     }
 
     fetch('/admin/surveys.php', {
@@ -623,30 +636,30 @@ function handleCSVImport(input) {
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
             return response.text().then(text => {
-                throw new Error('服务器未返回 JSON 格式，请检查文件格式。' + text.substring(0, 100));
+                throw new Error(t('js_server_error_non_json', '服务器未返回 JSON 格式，请检查文件格式。') + text.substring(0, 100));
             });
         }
         return response.json();
     })
     .then(data => {
         if (data.code !== 0) {
-            throw new Error(data.message || 'CSV 解析失败');
+            throw new Error(data.message || t('js_import_error', '导入出错: {error}').replace('{error}', ''));
         }
 
         const questions = data.data.questions;
         if (!questions || questions.length === 0) {
-            throw new Error('未在 CSV 中找到有效题目。');
+            throw new Error(t('js_csv_empty_questions', '未在 CSV 中找到有效题目。'));
         }
 
-        const confirmMsg = `已成功解析出 ${questions.length} 个题目。\n导入操作将替换当前编辑区的所有题目，确定要导入吗？`;
+        const confirmMsg = t('js_confirm_import', '已成功解析出 %d 个题目。\n导入操作将替换当前编辑区的所有题目，确定要导入吗？').replace('%d', questions.length);
         if (confirm(confirmMsg)) {
             populateParsedQuestions(questions);
-            alert('导入成功，请确认无误后点击最下方的“保存问卷”保存到数据库。');
+            alert(t('js_import_success_alert', '导入成功，请确认无误后点击最下方的“保存问卷”保存到数据库。'));
         }
     })
     .catch(error => {
         console.error('Import error:', error);
-        alert('导入出错: ' + error.message);
+        alert(t('js_import_error', '导入出错: {error}').replace('{error}', error.message));
     })
     .finally(() => {
         if (importBtn) {

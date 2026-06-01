@@ -9,18 +9,19 @@ define('SURVEY_SYSTEM', true);
 require_once __DIR__ . '/../../app/database.php';
 require_once __DIR__ . '/../../app/functions.php';
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    @session_start();
+}
 
 $appName = getAppName();
 $appLogoUrl = getAppLogoUrl();
-$pageName = '管理员登录';
+$pageName = __('login_title');
 $pageTitle = buildPageTitle($pageName);
 $error = '';
 
 if (!checkLoginAttempts()) {
     $remaining = getLoginLockoutRemaining();
-    $minutes = ceil($remaining / 60);
-    $error = "登录尝试过多，请 {$minutes} 分钟后再试";
+    $error = sprintf(__('login_locked'), $remaining);
 }
 
 if (isLoggedIn()) {
@@ -33,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $error === '') {
     $csrfToken = $_POST['csrf_token'] ?? '';
 
     if (!verifyCSRFToken($csrfToken)) {
-        $error = '安全校验失败，请刷新页面后重试';
+        $error = __('op_failed') . ': CSRF Token Invalid';
     } elseif ($username === ADMIN_USERNAME && password_verify($password, ADMIN_PASSWORD_HASH)) {
         resetLoginAttempts();
         $_SESSION['admin_logged_in'] = true;
@@ -44,15 +45,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $error === '') {
         $attempts = $_SESSION['login_attempts']['count'] ?? 0;
         $remaining = LOGIN_MAX_ATTEMPTS - $attempts;
         if ($remaining > 0) {
-            $error = "用户名或密码错误，还剩 {$remaining} 次尝试机会";
+            $error = sprintf(__('login_failed'), $remaining);
         } else {
-            $error = '登录尝试过多，请稍后再试';
+            $error = sprintf(__('login_locked'), LOGIN_LOCKOUT_SECONDS);
         }
     }
 }
 ?>
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="<?php echo getSystemLanguage() === 'zh' ? 'zh-CN' : 'en'; ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -77,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $error === '') {
                 >
                 <h2 data-app-name><?php echo e($appName); ?></h2>
             </div>
-            <p style="margin-bottom:16px; color:#666; text-align:center;">管理员登录</p>
+            <p style="margin-bottom:16px; color:#666; text-align:center;"><?php echo __('login_title'); ?></p>
 
             <?php if ($error): ?>
                 <div class="login-error"><?php echo e($error); ?></div>
@@ -86,18 +87,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $error === '') {
             <form method="POST" action="">
                 <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
                 <div class="form-group">
-                    <label>用户名</label>
+                    <label><?php echo __('login_username', '用户名'); ?></label>
                     <input type="text" name="username" class="form-control" required autofocus>
                 </div>
                 <div class="form-group">
-                    <label>密码</label>
+                    <label><?php echo __('login_password', '密码'); ?></label>
                     <input type="password" name="password" class="form-control" required>
                 </div>
-                <button type="submit" class="btn btn-primary" style="width:100%;">登录</button>
+                <button type="submit" class="btn btn-primary" style="width:100%;"><?php echo __('login_btn'); ?></button>
             </form>
         </div>
     </div>
     <?php echo renderAppFooter('admin-footer admin-footer-login'); ?>
+    <?php echo getJsLangBridgeHtml(); ?>
     <script src="/assets/js/main.js"></script>
 </body>
 </html>

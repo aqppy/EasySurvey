@@ -14,11 +14,11 @@ $surveyList = getSurveyList();
 $appName = getAppName();
 $appLogoUrl = getAppLogoUrl();
 $webBaseUrl = getWebBaseUrl();
-$pageName = '二维码生成';
+$pageName = __('nav_qrcode');
 $pageTitle = buildPageTitle($pageName);
 ?>
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="<?php echo getSystemLanguage() === 'zh' ? 'zh-CN' : 'en'; ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -50,50 +50,51 @@ $pageTitle = buildPageTitle($pageName);
                 <h1 data-app-name><?php echo e($appName); ?></h1>
             </div>
             <nav class="admin-nav">
-                <a href="/admin/index.php">仪表盘</a>
-                <a href="/admin/surveys.php">问卷管理</a>
-                <a href="/admin/responses.php">数据查看</a>
-                <a href="/admin/qrcode.php" class="active">二维码生成</a>
-                <a href="/admin/system.php">系统设置</a>
-                <a href="/admin/logout.php" class="logout">退出登录</a>
+                <a href="/admin/index.php"><?php echo __('nav_dashboard'); ?></a>
+                <a href="/admin/surveys.php"><?php echo __('nav_surveys'); ?></a>
+                <a href="/admin/responses.php"><?php echo __('nav_responses'); ?></a>
+                <a href="/admin/qrcode.php" class="active"><?php echo __('nav_qrcode'); ?></a>
+                <a href="/admin/system.php"><?php echo __('nav_system'); ?></a>
+                <a href="?lang_toggle=1" class="lang-toggle" style="margin-left:auto; color:var(--theme-color); font-weight:600;"><?php echo __('lang_toggle'); ?></a>
+                <a href="/admin/logout.php" class="logout"><?php echo __('nav_logout'); ?></a>
             </nav>
         </div>
 
         <div class="card">
             <div class="card-header">
-                <h2>生成问卷二维码</h2>
+                <h2><?php echo __('qr_title'); ?></h2>
             </div>
 
-            <p style="margin-bottom:15px; color:#666;">选择问卷后生成二维码，可下载打印给用户扫码填写。</p>
-            <p style="margin-bottom:15px; color:#666;">当前生成链接基于：<code><?php echo e($webBaseUrl); ?></code></p>
+            <p style="margin-bottom:15px; color:#666;"><?php echo __('qr_help'); ?></p>
+            <p style="margin-bottom:15px; color:#666;"><?php echo __('sys_base_url'); ?>: <code><?php echo e($webBaseUrl); ?></code></p>
 
             <div style="display:flex; gap:10px; align-items:center; margin-bottom:20px;">
                 <select id="qrcodeSurveySelect" class="form-control" style="flex:1;">
-                    <option value="">-- 请选择问卷 --</option>
+                    <option value="">-- <?php echo __('resp_select_survey'); ?> --</option>
                     <?php foreach ($surveyList as $survey): ?>
                         <option value="<?php echo $survey['id']; ?>" data-url="<?php echo e(buildSurveyUrl($survey['id'])); ?>">
                             <?php echo e($survey['title']); ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
-                <button type="button" class="btn btn-primary" id="generateBtn">生成二维码</button>
+                <button type="button" class="btn btn-primary" id="generateBtn"><?php echo __('qr_title'); ?></button>
             </div>
 
             <div id="qrcodeResult" style="display:none;">
                 <div class="qrcode-display">
-                    <h3 id="qrTitle" style="margin-bottom:15px;"></h3>
+                    <h3 id="qrTitleText" style="margin-bottom:15px;"></h3>
                     <canvas id="qrCanvas" width="290" height="290"></canvas>
                     <canvas id="qrDownloadCanvas" width="1024" height="1024" style="display:none;"></canvas>
                     <p style="margin-top:15px;">
-                        <button type="button" class="btn btn-success" id="downloadBtn">下载二维码</button>
+                        <button type="button" class="btn btn-success" id="downloadBtn"><?php echo __('qr_download_btn'); ?></button>
                     </p>
                     <p style="margin-top:10px; color:#666; font-size:0.9rem;">
-                        问卷链接：<a id="qrLink" href="#" target="_blank"></a>
+                        <?php echo __('qr_preview_text'); ?>: <a id="qrLink" href="#" target="_blank"></a>
                     </p>
                 </div>
             </div>
 
-            <div id="qrcodePlaceholder" class="qrcode-placeholder">请选择问卷并点击“生成二维码”。</div>
+            <div id="qrcodePlaceholder" class="qrcode-placeholder"><?php echo __('qr_help'); ?></div>
         </div>
     </div>
     <?php echo renderAppFooter('admin-footer'); ?>
@@ -104,7 +105,7 @@ $pageTitle = buildPageTitle($pageName);
         document.getElementById('generateBtn').addEventListener('click', function () {
             const select = document.getElementById('qrcodeSurveySelect');
             if (!select.value) {
-                alert('请先选择问卷');
+                alert("<?php echo e(__('resp_select_survey')); ?>");
                 return;
             }
 
@@ -118,18 +119,18 @@ $pageTitle = buildPageTitle($pageName);
             // 1. 生成前台展示用的 290x290 规格预览二维码
             QRCode.toCanvas(canvas, surveyUrl, { width: 290, margin: 2 }, function (error) {
                 if (error) {
-                    alert('预览二维码生成失败: ' + error);
+                    alert('QR code generation failed: ' + error);
                     return;
                 }
 
                 // 2. 同步生成 1024x1024 高清规格的下载用离线二维码
                 QRCode.toCanvas(downloadCanvas, surveyUrl, { width: 1024, margin: 2 }, function (err) {
                     if (err) {
-                        console.error('高清二维码生成失败:', err);
+                        console.error('HD QR code generation failed:', err);
                     }
                 });
 
-                document.getElementById('qrTitle').textContent = title;
+                document.getElementById('qrTitleText').textContent = title;
                 document.getElementById('qrLink').href = surveyUrl;
                 document.getElementById('qrLink').textContent = surveyUrl;
                 document.getElementById('qrcodeResult').style.display = 'block';
@@ -148,6 +149,7 @@ $pageTitle = buildPageTitle($pageName);
         });
     })();
     </script>
+    <?php echo getJsLangBridgeHtml(); ?>
     <script src="/assets/js/main.js"></script>
 </body>
 </html>

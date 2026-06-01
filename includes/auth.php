@@ -8,5 +8,7 @@ if (!defined('SURVEY_SYSTEM')) {
     die('Access denied');
 }
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 requireLogin();

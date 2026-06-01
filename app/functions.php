@@ -7,6 +7,32 @@ if (!defined('SURVEY_SYSTEM')) {
     die('Access denied');
 }
 
+if (session_status() === PHP_SESSION_NONE) {
+    @session_start();
+}
+
+// 语言切换请求拦截
+if (isset($_GET['lang_toggle'])) {
+    $currentLang = (!empty($_SESSION['admin_lang']) ? $_SESSION['admin_lang'] : 'zh');
+    if (!empty($_COOKIE['admin_lang']) && empty($_SESSION['admin_lang'])) {
+        $currentLang = $_COOKIE['admin_lang'];
+    }
+    $newLang = ($currentLang === 'zh' ? 'en' : 'zh');
+    
+    $_SESSION['admin_lang'] = $newLang;
+    setcookie('admin_lang', $newLang, time() + 31536000, '/', '', false, true);
+    
+    $uri = $_SERVER['REQUEST_URI'];
+    $cleanUri = preg_replace('/[?&]lang_toggle=[^&]+/', '', $uri);
+    $cleanUri = preg_replace('/[?&]$/', '', $cleanUri);
+    if ($cleanUri === '') {
+        $cleanUri = '/';
+    }
+    
+    header('Location: ' . $cleanUri);
+    exit;
+}
+
 // 针对旧版本 config.php 兼容性提供的安全默认配置兜底
 if (!defined('APP_NAME')) {
     define('APP_NAME', '问卷调查系统');
@@ -387,7 +413,8 @@ function getDefaultAppSettings() {
         'web_base_url' => SITE_URL,
         'open_wx_mp_login' => '0',
         'copyright' => '',
-        'theme_color' => '#1677ff'
+        'theme_color' => '#1677ff',
+        'default_language' => 'zh'
     ];
 }
 
@@ -415,6 +442,62 @@ function getAppSettings() {
     } catch (Throwable $e) {
         return $defaults;
     }
+}
+
+function getSystemLanguage() {
+    if (session_status() === PHP_SESSION_NONE) {
+        @session_start();
+    }
+    if (!empty($_SESSION['admin_lang'])) {
+        return $_SESSION['admin_lang'];
+    }
+    if (!empty($_COOKIE['admin_lang'])) {
+        return $_COOKIE['admin_lang'];
+    }
+    $settings = getAppSettings();
+    $default = trim((string)($settings['default_language'] ?? 'zh'));
+    return $default !== '' ? $default : 'zh';
+}
+
+function __($key, $default = '') {
+    static $dictionary = null;
+    if ($dictionary === null) {
+        $lang = getSystemLanguage();
+        $file = __DIR__ . "/languages/{$lang}.php";
+        $dictionary = is_file($file) ? include $file : [];
+    }
+    return $dictionary[$key] ?? ($default !== '' ? $default : $key);
+}
+
+function getJsLangBridgeHtml() {
+    $lang = getSystemLanguage();
+    $file = __DIR__ . "/languages/{$lang}.php";
+    $dictionary = is_file($file) ? include $file : [];
+    
+    $jsTrans = [];
+    $extraKeys = [
+        'survey_q_title',
+        'survey_q_title_placeholder',
+        'survey_q_type',
+        'survey_type_radio',
+        'survey_type_checkbox',
+        'survey_type_text',
+        'survey_options_label',
+        'survey_option_placeholder',
+        'survey_add_option',
+        'required_field',
+        'edit',
+        'delete',
+        'resp_detail_q'
+    ];
+    
+    foreach ($dictionary as $key => $value) {
+        if (strpos($key, 'js_') === 0 || in_array($key, $extraKeys, true)) {
+            $jsTrans[$key] = $value;
+        }
+    }
+    
+    return '<script>window.SurveyLang = ' . json_encode($jsTrans, JSON_UNESCAPED_UNICODE) . ';</script>';
 }
 
 function getAppName() {

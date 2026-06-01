@@ -129,7 +129,7 @@ function exportCSV($db, $surveyId) {
     $survey = $stmt->fetch();
 
     if (!$survey) {
-        die('问卷不存在');
+        die('Survey not found');
     }
 
     $stmt = $db->prepare("SELECT id, title FROM questions WHERE survey_id = ? ORDER BY sort_order ASC, id ASC");
@@ -145,7 +145,7 @@ function exportCSV($db, $surveyId) {
     echo "\xEF\xBB\xBF";
 
     $output = fopen('php://output', 'w');
-    $headers = ['回答 ID', 'IP 地址', '提交时间'];
+    $headers = [__('dash_resp_id', '回答 ID'), __('dash_submit_ip', 'IP 地址'), __('dash_submit_time', '提交时间')];
     foreach ($questions as $question) {
         $headers[] = $question['title'];
     }
@@ -174,11 +174,11 @@ function exportCSV($db, $surveyId) {
     exit;
 }
 
-$pageName = '数据查看';
+$pageName = __('nav_responses');
 $pageTitle = buildPageTitle($pageName);
 ?>
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="<?php echo getSystemLanguage() === 'zh' ? 'zh-CN' : 'en'; ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -206,22 +206,23 @@ $pageTitle = buildPageTitle($pageName);
                 <h1 data-app-name><?php echo e($appName); ?></h1>
             </div>
             <nav class="admin-nav">
-                <a href="/admin/index.php">仪表盘</a>
-                <a href="/admin/surveys.php">问卷管理</a>
-                <a href="/admin/responses.php" class="active">数据查看</a>
-                <a href="/admin/qrcode.php">二维码生成</a>
-                <a href="/admin/system.php">系统设置</a>
-                <a href="/admin/logout.php" class="logout">退出登录</a>
+                <a href="/admin/index.php"><?php echo __('nav_dashboard'); ?></a>
+                <a href="/admin/surveys.php"><?php echo __('nav_surveys'); ?></a>
+                <a href="/admin/responses.php" class="active"><?php echo __('nav_responses'); ?></a>
+                <a href="/admin/qrcode.php"><?php echo __('nav_qrcode'); ?></a>
+                <a href="/admin/system.php"><?php echo __('nav_system'); ?></a>
+                <a href="?lang_toggle=1" class="lang-toggle" style="margin-left:auto; color:var(--theme-color); font-weight:600;"><?php echo __('lang_toggle'); ?></a>
+                <a href="/admin/logout.php" class="logout"><?php echo __('nav_logout'); ?></a>
             </nav>
         </div>
 
         <div class="card">
             <div class="card-header">
-                <h2>选择问卷</h2>
+                <h2><?php echo __('resp_select_survey'); ?></h2>
             </div>
             <form method="GET" action="" style="display:flex; gap:10px; align-items:center;">
                 <select name="survey_id" class="form-control" style="flex:1;" onchange="this.form.submit()">
-                    <option value="">-- 请选择问卷 --</option>
+                    <option value="">-- <?php echo __('resp_select_survey'); ?> --</option>
                     <?php foreach ($surveyList as $survey): ?>
                         <option value="<?php echo $survey['id']; ?>" <?php echo $currentSurveyId === intval($survey['id']) ? 'selected' : ''; ?>>
                             <?php echo e($survey['title']); ?>
@@ -229,7 +230,7 @@ $pageTitle = buildPageTitle($pageName);
                     <?php endforeach; ?>
                 </select>
                 <?php if ($currentSurvey): ?>
-                    <button type="button" class="btn btn-success" onclick="exportCSV(<?php echo $currentSurvey['id']; ?>)">导出 CSV</button>
+                    <button type="button" class="btn btn-success" onclick="window.location.href='?survey_id=<?php echo $currentSurvey['id']; ?>&action=export'"><?php echo __('resp_export_btn'); ?></button>
                 <?php endif; ?>
             </form>
         </div>
@@ -237,9 +238,9 @@ $pageTitle = buildPageTitle($pageName);
         <?php if ($currentSurvey): ?>
             <div class="card">
                 <div class="card-header">
-                    <h2>统计概览</h2>
+                    <h2><?php echo __('resp_chart_tab'); ?></h2>
                 </div>
-                <p>总回答数：<strong><?php echo $totalCount; ?></strong></p>
+                <p><?php echo __('resp_total_count'); ?>：<strong><?php echo $totalCount; ?></strong></p>
 
                 <?php if (!empty($questionStats)): ?>
                     <div class="chart-container">
@@ -250,9 +251,9 @@ $pageTitle = buildPageTitle($pageName);
                                 <table class="table" style="margin-top:10px; max-width:400px;">
                                     <thead>
                                         <tr>
-                                            <th>选项</th>
-                                            <th>数量</th>
-                                            <th>占比</th>
+                                            <th><?php echo __('resp_opt_name'); ?></th>
+                                            <th><?php echo __('resp_opt_count'); ?></th>
+                                            <th><?php echo __('resp_opt_ratio'); ?></th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -269,25 +270,25 @@ $pageTitle = buildPageTitle($pageName);
                         <?php endforeach; ?>
                     </div>
                 <?php else: ?>
-                    <p style="color:#999;">当前问卷还没有可统计的选择题数据。</p>
+                    <p style="color:#999;"><?php echo __('resp_no_data'); ?></p>
                 <?php endif; ?>
             </div>
 
             <div class="card">
                 <div class="card-header">
-                    <h2>回答详情</h2>
+                    <h2><?php echo __('resp_list_tab'); ?></h2>
                 </div>
 
                 <?php if (empty($responses)): ?>
-                    <p style="color:#999; text-align:center; padding:20px;">暂无回答数据。</p>
+                    <p style="color:#999; text-align:center; padding:20px;"><?php echo __('resp_no_data'); ?></p>
                 <?php else: ?>
                     <div style="overflow-x:auto;">
                         <table class="table">
                             <thead>
                                 <tr>
-                                    <th>回答 ID</th>
-                                    <th>IP 地址</th>
-                                    <th>提交时间</th>
+                                    <th><?php echo __('dash_resp_id'); ?></th>
+                                    <th><?php echo __('dash_submit_ip'); ?></th>
+                                    <th><?php echo __('dash_submit_time'); ?></th>
                                     <?php foreach ($questions as $question): ?>
                                         <th><?php echo e($question['title']); ?></th>
                                     <?php endforeach; ?>
@@ -324,6 +325,7 @@ $pageTitle = buildPageTitle($pageName);
     </div>
     <?php echo renderAppFooter('admin-footer'); ?>
 
+    <?php echo getJsLangBridgeHtml(); ?>
     <script src="/assets/js/main.js"></script>
     <script>
     <?php foreach ($questionStats as $questionId => $stat): ?>
@@ -332,9 +334,9 @@ $pageTitle = buildPageTitle($pageName);
         data: {
             labels: <?php echo json_encode(array_keys($stat['stats']), JSON_UNESCAPED_UNICODE); ?>,
             datasets: [{
-                label: '数量',
+                label: "<?php echo e(__('resp_opt_count')); ?>",
                 data: <?php echo json_encode(array_values($stat['stats'])); ?>,
-                backgroundColor: '#1677ff'
+                backgroundColor: '<?php echo e(getAppThemeColor()); ?>'
             }]
         },
         options: {

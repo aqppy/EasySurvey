@@ -8,7 +8,9 @@ define('SURVEY_SYSTEM', true);
 require_once __DIR__ . '/../../app/database.php';
 require_once __DIR__ . '/../../app/functions.php';
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 session_destroy();
 
 redirect('/admin/login.php');
