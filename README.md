@@ -1,4 +1,4 @@
-# 📝 轻量级高颜值问卷系统 (Survey System)
+# 📝 轻量级高颜值问卷系统 (EasySurvey)
 
 [![PHP Version](https://img.shields.io/badge/php-%3E%3D%208.0-blue.svg)](https://php.net)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
